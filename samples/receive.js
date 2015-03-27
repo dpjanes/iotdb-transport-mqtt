@@ -12,6 +12,8 @@
 var Transport = require('../MQTTTransport').MQTTTransport;
 
 var p = new Transport({
+    host: "mqtt.iotdb.org",
+    prefix: "/u/mqtt-transport",
 });
 p.updated("MyThingID", "meta", function(id, band, value) {
     if (value === undefined) {

@@ -12,6 +12,10 @@
 var Transport = require('../MQTTTransport').MQTTTransport;
 
 var p = new Transport({
+    host: "mqtt.iotdb.org",
+    prefix: "/u/mqtt-transport",
+    retain: true,
+    add_timestamp: true,
 });
 
 var _update = function() {

@@ -5,6 +5,7 @@
     }, 
     "dependencies": {
         "iotdb": ">=0.5.8", 
+        "mqtt": "",
         "validate": "~2.1.6"
     }, 
     "description": "HomeStar / IOTDB Bridge for Filesystems", 
