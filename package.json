@@ -4,8 +4,7 @@
         "url": "https://github.com/dpjanes/iotdb-transport-mqtt/issues"
     }, 
     "dependencies": {
-        "iotdb": ">=0.5.8", 
-        "mqtt": "",
+        "mqtt": "~1.1.2", 
         "validate": "~2.1.6"
     }, 
     "description": "HomeStar / IOTDB Bridge for Filesystems", 
@@ -25,6 +24,9 @@
     "license": "Apache-2.0", 
     "main": "index.js", 
     "name": "iotdb-transport-mqtt", 
+    "peerDependencies": {
+        "iotdb": ">=0.5.11"
+    }, 
     "private": false, 
     "repository": {
         "type": "git", 
@@ -33,5 +35,5 @@
     "scripts": {
         "test": "grunt"
     }, 
-    "version": "0.0.0"
+    "version": "0.0.1"
 }
