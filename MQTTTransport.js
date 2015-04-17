@@ -37,10 +37,40 @@ var logger = bunyan.createLogger({
     module: 'MQTTTransport',
 });
 
+/* --- constructor --- */
+
 /**
- *  Create a transport for FireBase.
+ *  See {iotdb.transporter.Transport#Transport} for documentation.
+ *
+ *  @param {dictionary} initd
+ *
+ *  @param {string} initd.prefix
+ *  MQTT topic prefix
+ *
+ *  @param {string} initd.host
+ *  MQTT server host
+ *
+ *  @param {integer} initd.port
+ *  MQTT server port, by default 1883
+ *
+ *  @param {boolean} initd.retain
+ *  Make messages retained, by default false
+ *
+ *  @param {boolean} initd.qos
+ *  MQTT QOS. Either 0, 1 or 2. By default 0.
+ *
+ *  @param {boolean|array} initd.add_timestamp
+ *  Add a @timestamp to outgoing records.
+ *  If an array, the band must be in the array.
+ *
+ *  @param {function} initd.channel
+ *  @param {function} initd.unchannel
+ *
+ *  @param {MQTTClient|undefined} native
+ *  If defined, this will be used for the MQTT client / connection.
+ *  Otherwise we will make our own.
  */
-var MQTTTransport = function (initd) {
+var MQTTTransport = function (initd, native) {
     var self = this;
 
     self.initd = _.defaults(
@@ -53,6 +83,8 @@ var MQTTTransport = function (initd) {
             retain: false,
             qos: 0,
             add_timestamp: false,
+            channel: _channel,
+            unchannel: _unchannel,
         }
     );
 
@@ -60,35 +92,39 @@ var MQTTTransport = function (initd) {
         throw new Error("MQTTTransport: expected initd.host");
     }
     
-    self.native = mqtt.createClient(self.initd.port, self.initd.host);
+    if (native) {
+        self.native = native;
+    } else {
+        self.native = mqtt.createClient(self.initd.port, self.initd.host);
+    }
+
     self.native.on('error', function () {
-        logger.info({
+        logger.error({
             method: "publish/on(error)",
-            arguments: arguments
-        }, "unexpected");
+            arguments: arguments,
+            cause: "likely MQTT issue - will automatically reconnect soon",
+        }, "unexpected error");
     });
-    self.native.on('clone', function () {
-        logger.info({
-            method: "publish/on(clone)",
-            arguments: arguments
-        }, "unexpected");
+    self.native.on('close', function () {
+        logger.error({
+            method: "publish/on(close)",
+            arguments: arguments,
+            cause: "likely MQTT issue - will automatically reconnect soon",
+        }, "unexpected close");
     });
 
     self._subscribed = false;
 };
 
+MQTTTransport.prototype = new iotdb.transporter.Transport;
+
+/* --- methods --- */
+
 /**
- *  List all the IDs associated with this Transport.
- *
- *  The callback is called with a list of IDs
- *  and then null when there are no further values.
- *
- *  Note that this may not be memory efficient due
- *  to the way "value" works. This could be revisited
- *  in the future.
- *
+ *  See {iotdb.transporter.Transport#list} for documentation.
+ *  <p>
  *  MQTT: this does nothing, as we don't have 
- *  a concept of a databse
+ *  a concept of a databse. 
  */
 MQTTTransport.prototype.list = function(paramd, callback) {
     var self = this;
@@ -102,6 +138,24 @@ MQTTTransport.prototype.list = function(paramd, callback) {
 };
 
 /**
+ *  See {iotdb.transporter.Transport#added} for documentation.
+ *  <p>
+ *  NOT FINISHED
+ */
+MQTTTransport.prototype.added = function(paramd, callback) {
+    var self = this;
+
+    if (arguments.length === 1) {
+        paramd = {};
+        callback = arguments[0];
+    }
+
+    var channel = self.initd.channel(self.initd.prefix);
+};
+
+/**
+ *  See {iotdb.transporter.Transport#get} for documentation.
+ *  <p>
  *  MQTT: this does nothing, as we don't have 
  *  a concept of a databse
  */
@@ -120,6 +174,7 @@ MQTTTransport.prototype.get = function(id, band, callback) {
 };
 
 /**
+ *  See {iotdb.transporter.Transport#update} for documentation.
  */
 MQTTTransport.prototype.update = function(id, band, value) {
     var self = this;
@@ -131,15 +186,18 @@ MQTTTransport.prototype.update = function(id, band, value) {
         throw new Error("band is required");
     }
 
-    var channel = self._channel(id, band);
+    var channel = self.initd.channel(self.initd.prefix, id, band);
 
-    if (self.initd.add_timestamp && !value["@timestamp"]) {
+    var timestamp = value["@timestamp"];
+    if (!timestamp && _.isBoolean(self.initd.add_timestamp)) {
         value = _.shallowCopy(value);
-        value["@timestamp"] = (new Date()).toISOString();
-        var d = _pack(value);
-    } else {
-        var d = _pack(value);
+        value["@timestamp"] = _.timestamp();
+    } else if (!timestamp && _.isArray(self.initd.add_timestamp) && (self.init.add_timestamp.indexOf(band) > -1)) {
+        value = _.shallowCopy(value);
+        value["@timestamp"] = _.timestamp();
     }
+
+    var d = _pack(value);
 
     self.native.publish(channel, d, {
         retain: self.initd.retain,
@@ -148,6 +206,7 @@ MQTTTransport.prototype.update = function(id, band, value) {
 };
 
 /**
+ *  See {iotdb.transporter.Transport#updated} for documentation.
  */
 MQTTTransport.prototype.updated = function(id, band, callback) {
     var self = this;
@@ -164,10 +223,22 @@ MQTTTransport.prototype.updated = function(id, band, callback) {
     if (!self._subscribed) {
         var channel = path.join(self.initd.prefix, "#")
         self.native.subscribe(channel, function(error) {
+            /* maybe reset _subscribed on mqtt.open? */
+            logger.error({
+                method: "publish/on(close)",
+                arguments: arguments,
+                cause: "likely MQTT issue - this is probably very bad",
+            }, "unexpected error subscribing");
         });
     }
 
     self.native.on("message", function(topic, message, packet) {
+        var parts = self.initd.unchannel(self.initd.prefix, topic);
+        if (parts.length !== 2) {
+            return;
+        }
+
+        /*
         var subpath = topic.substring(self.initd.prefix.length).replace(/^\//, '');
         var parts = subpath.split("/");
         if (parts.length !== 2) {
@@ -176,6 +247,7 @@ MQTTTransport.prototype.updated = function(id, band, callback) {
 
         var topic_id = _decode(parts[0]);
         var topic_band = _decode(parts[1]);
+        */
 
         if (id && (topic_id !== id)) {
             return;
@@ -190,9 +262,11 @@ MQTTTransport.prototype.updated = function(id, band, callback) {
 };
 
 /**
+ *  See {iotdb.transporter.Transport#remove} for documentation.
+ *  <p>
  *  MQTT - do nothing
  */
-MQTTTransport.prototype.remove = function(id, band) {
+MQTTTransport.prototype.remove = function(id) {
     var self = this;
 
     if (!id) {
@@ -201,12 +275,10 @@ MQTTTransport.prototype.remove = function(id, band) {
 };
 
 /* -- internals -- */
-MQTTTransport.prototype._channel = function(id, band, paramd) {
-    var self = this;
-
+var _channel = function(prefix, id, band, paramd) {
     paramd = _.defaults(paramd, {});
 
-    var channel = self.initd.prefix;
+    var channel = prefix;
     if (id) {
         channel = path.join(channel, _encode(id));
 
@@ -216,6 +288,20 @@ MQTTTransport.prototype._channel = function(id, band, paramd) {
     }
 
     return channel;
+};
+
+var _unchannel = function(prefix, path) {
+    var subpath = path.substring(prefix.length).replace(/^\//, '');
+    var parts = subpath.split("/");
+
+    if (parts.length !== 2) {
+        return;
+    }
+
+    var this_id = _decode(parts[0]);
+    var this_band = _decode(parts[1]);
+
+    return [ this_id, this_band ];
 };
 
 var _encode = function(s) {
