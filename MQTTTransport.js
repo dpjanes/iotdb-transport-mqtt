@@ -75,6 +75,14 @@ var MQTTTransport = function (initd, native) {
 
     self.initd = _.defaults(
         initd,
+        {
+            channel: iotdb.transporter.channel,
+            unchannel: iotdb.transporter.unchannel,
+            encode: _encode,
+            decode: _decode,
+            pack: _pack,
+            unpack: _unpack,
+        },
         iotdb.keystore().get("/transports/MQTTTransport/initd"),
         {
             prefix: "",
@@ -83,8 +91,6 @@ var MQTTTransport = function (initd, native) {
             retain: false,
             qos: 0,
             add_timestamp: false,
-            channel: _channel,
-            unchannel: _unchannel,
         }
     );
 
@@ -134,6 +140,8 @@ MQTTTransport.prototype.list = function(paramd, callback) {
         callback = arguments[0];
     }
 
+    self._validate_list(paramd, callback);
+
     callback(null);
 };
 
@@ -150,7 +158,7 @@ MQTTTransport.prototype.added = function(paramd, callback) {
         callback = arguments[0];
     }
 
-    var channel = self.initd.channel(self.initd.prefix);
+    self._validate_added(paramd, callback);
 };
 
 /**
@@ -159,35 +167,28 @@ MQTTTransport.prototype.added = function(paramd, callback) {
  *  MQTT: this does nothing, as we don't have 
  *  a concept of a databse
  */
-MQTTTransport.prototype.get = function(id, band, callback) {
+MQTTTransport.prototype.get = function(paramd, callback) {
     var self = this;
 
-    if (!id) {
-        throw new Error("id is required");
-    }
-    if (!band) {
-        throw new Error("band is required");
-    }
+    self._validate_get(paramd, callback);
 
     // don't know (and never will)
-    callback(id, band, undefined); 
+    callback({
+        id: paramd.id, 
+        band: paramd.band, 
+        value: undefined,
+    });
 };
 
 /**
  *  See {iotdb.transporter.Transport#update} for documentation.
  */
-MQTTTransport.prototype.update = function(id, band, value) {
+MQTTTransport.prototype.update = function(paramd, callback) {
     var self = this;
 
-    if (!id) {
-        throw new Error("id is required");
-    }
-    if (!band) {
-        throw new Error("band is required");
-    }
+    self._validate_update(paramd, callback);
 
-    var channel = self.initd.channel(self.initd.prefix, id, band);
-
+    var value = paramd.value;
     var timestamp = value["@timestamp"];
     if (!timestamp && _.isBoolean(self.initd.add_timestamp)) {
         value = _.shallowCopy(value);
@@ -197,7 +198,8 @@ MQTTTransport.prototype.update = function(id, band, value) {
         value["@timestamp"] = _.timestamp();
     }
 
-    var d = _pack(value);
+    var channel = self.initd.channel(self.initd, paramd.id, paramd.band);
+    var d = self.initd.pack(value, paramd.id, paramd.band);
 
     self.native.publish(channel, d, {
         retain: self.initd.retain,
@@ -208,17 +210,10 @@ MQTTTransport.prototype.update = function(id, band, value) {
 /**
  *  See {iotdb.transporter.Transport#updated} for documentation.
  */
-MQTTTransport.prototype.updated = function(id, band, callback) {
+MQTTTransport.prototype.updated = function(paramd, callback) {
     var self = this;
 
-    if (arguments.length === 1) {
-        id = null;
-        band = null;
-        callback = arguments[0];
-    } else if (arguments.length === 2) {
-        band = null;
-        callback = arguments[1];
-    }
+    self._validate_updated(paramd, callback);
 
     if (!self._subscribed) {
         var channel = path.join(self.initd.prefix, "#")
@@ -233,7 +228,7 @@ MQTTTransport.prototype.updated = function(id, band, callback) {
     }
 
     self.native.on("message", function(topic, message, packet) {
-        var parts = self.initd.unchannel(self.initd.prefix, topic);
+        var parts = self.initd.unchannel(self.initd, topic);
         if (!parts) {
             return;
         }
@@ -241,26 +236,19 @@ MQTTTransport.prototype.updated = function(id, band, callback) {
         var topic_id = parts[0];
         var topic_band = parts[1];
 
-        /*
-        var subpath = topic.substring(self.initd.prefix.length).replace(/^\//, '');
-        var parts = subpath.split("/");
-        if (parts.length !== 2) {
+        if (paramd.id && (topic_id !== paramd.id)) {
+            return;
+        }
+        if (paramd.band && (topic_band !== paramd.band)) {
             return;
         }
 
-        var topic_id = _decode(parts[0]);
-        var topic_band = _decode(parts[1]);
-        */
-
-        if (id && (topic_id !== id)) {
-            return;
-        }
-        if (band && (topic_band !== band)) {
-            return;
-        }
-
-        var d = _unpack(message);
-        callback(topic_id, topic_band, d);
+        var d = self.initd.unpack(message, topic_id, topic_band);
+        callback({
+            id: topic_id, 
+            band: topic_band, 
+            value: d,
+        });
     });
 };
 
@@ -269,44 +257,13 @@ MQTTTransport.prototype.updated = function(id, band, callback) {
  *  <p>
  *  MQTT - do nothing
  */
-MQTTTransport.prototype.remove = function(id) {
+MQTTTransport.prototype.remove = function(paramd, callback) {
     var self = this;
 
-    if (!id) {
-        throw new Error("id is required");
-    }
+    self._validate_remove(paramd, callback);
 };
 
 /* -- internals -- */
-var _channel = function(prefix, id, band, paramd) {
-    paramd = _.defaults(paramd, {});
-
-    var channel = prefix;
-    if (id) {
-        channel = path.join(channel, _encode(id));
-
-        if (band) {
-            channel = path.join(channel, _encode(band));
-        }
-    }
-
-    return channel;
-};
-
-var _unchannel = function(prefix, path) {
-    var subpath = path.substring(prefix.length).replace(/^\//, '');
-    var parts = subpath.split("/");
-
-    if (parts.length !== 2) {
-        return;
-    }
-
-    var this_id = _decode(parts[0]);
-    var this_band = _decode(parts[1]);
-
-    return [ this_id, this_band ];
-};
-
 var _encode = function(s) {
     return s.replace(/[\/#+]/g, function(c) {
         return '%' + c.charCodeAt(0).toString(16);

@@ -21,10 +21,14 @@ var p = new Transport({
 var _update = function() {
     var now = (new Date()).toISOString();
     console.log("+ sent update", now);
-    p.update("MyThingID", "meta", {
-        first: "David",
-        last: "Janes",
-        now: now,
+    p.update({
+        id: "MyThingID", 
+        band: "meta", 
+        value: {
+            first: "David",
+            last: "Janes",
+            now: now,
+        },
     });
 };
 
