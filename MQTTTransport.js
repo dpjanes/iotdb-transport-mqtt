@@ -234,9 +234,12 @@ MQTTTransport.prototype.updated = function(id, band, callback) {
 
     self.native.on("message", function(topic, message, packet) {
         var parts = self.initd.unchannel(self.initd.prefix, topic);
-        if (parts.length !== 2) {
+        if (!parts) {
             return;
         }
+
+        var topic_id = parts[0];
+        var topic_band = parts[1];
 
         /*
         var subpath = topic.substring(self.initd.prefix.length).replace(/^\//, '');
