@@ -162,6 +162,26 @@ MQTTTransport.prototype.added = function(paramd, callback) {
 };
 
 /**
+ *  See {iotdb.transporter.Transport#about} for documentation.
+ *  <p>
+ *  MQTT: this does nothing, as we don't have 
+ *  a concept of a databse
+ */
+MQTTTransport.prototype.about = function(paramd, callback) {
+    var self = this;
+
+    self._validate_about(paramd, callback);
+
+    // don't know (and never will)
+    callback({
+        id: paramd.id, 
+        band: paramd.band, 
+        value: undefined,
+        error: new Error("N/A"),
+    });
+};
+
+/**
  *  See {iotdb.transporter.Transport#get} for documentation.
  *  <p>
  *  MQTT: this does nothing, as we don't have 
@@ -177,6 +197,7 @@ MQTTTransport.prototype.get = function(paramd, callback) {
         id: paramd.id, 
         band: paramd.band, 
         value: undefined,
+        error: new Error("N/A"),
     });
 };
 
