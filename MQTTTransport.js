@@ -142,7 +142,10 @@ MQTTTransport.prototype.list = function(paramd, callback) {
 
     self._validate_list(paramd, callback);
 
-    callback(null);
+    callback({
+        end: true,
+        error: new Error("N/A"),
+    });
 };
 
 /**
