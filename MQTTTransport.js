@@ -37,6 +37,12 @@ var logger = bunyan.createLogger({
     module: 'MQTTTransport',
 });
 
+/* --- forward definitions --- */
+var _encode;
+var _decode;
+var _unpack;
+var _pack;
+
 /* --- constructor --- */
 
 /**
@@ -74,8 +80,7 @@ var MQTTTransport = function (initd, native) {
     var self = this;
 
     self.initd = _.defaults(
-        initd,
-        {
+        initd, {
             channel: iotdb.transporter.channel,
             unchannel: iotdb.transporter.unchannel,
             encode: _encode,
@@ -83,8 +88,7 @@ var MQTTTransport = function (initd, native) {
             pack: _pack,
             unpack: _unpack,
         },
-        iotdb.keystore().get("/transports/MQTTTransport/initd"),
-        {
+        iotdb.keystore().get("/transports/MQTTTransport/initd"), {
             prefix: "",
             host: "",
             port: 1883,
@@ -97,7 +101,7 @@ var MQTTTransport = function (initd, native) {
     if (!self.initd.host) {
         throw new Error("MQTTTransport: expected initd.host");
     }
-    
+
     if (native) {
         self.native = native;
     } else {
@@ -122,7 +126,7 @@ var MQTTTransport = function (initd, native) {
     self._subscribed = false;
 };
 
-MQTTTransport.prototype = new iotdb.transporter.Transport;
+MQTTTransport.prototype = new iotdb.transporter.Transport();
 
 /* --- methods --- */
 
@@ -132,7 +136,7 @@ MQTTTransport.prototype = new iotdb.transporter.Transport;
  *  MQTT: this does nothing, as we don't have 
  *  a concept of a databse. 
  */
-MQTTTransport.prototype.list = function(paramd, callback) {
+MQTTTransport.prototype.list = function (paramd, callback) {
     var self = this;
 
     if (arguments.length === 1) {
@@ -153,7 +157,7 @@ MQTTTransport.prototype.list = function(paramd, callback) {
  *  <p>
  *  NOT FINISHED
  */
-MQTTTransport.prototype.added = function(paramd, callback) {
+MQTTTransport.prototype.added = function (paramd, callback) {
     var self = this;
 
     if (arguments.length === 1) {
@@ -170,15 +174,15 @@ MQTTTransport.prototype.added = function(paramd, callback) {
  *  MQTT: this does nothing, as we don't have 
  *  a concept of a databse
  */
-MQTTTransport.prototype.about = function(paramd, callback) {
+MQTTTransport.prototype.about = function (paramd, callback) {
     var self = this;
 
     self._validate_about(paramd, callback);
 
     // don't know (and never will)
     callback({
-        id: paramd.id, 
-        band: paramd.band, 
+        id: paramd.id,
+        band: paramd.band,
         value: undefined,
         error: new Error("N/A"),
     });
@@ -190,15 +194,15 @@ MQTTTransport.prototype.about = function(paramd, callback) {
  *  MQTT: this does nothing, as we don't have 
  *  a concept of a databse
  */
-MQTTTransport.prototype.get = function(paramd, callback) {
+MQTTTransport.prototype.get = function (paramd, callback) {
     var self = this;
 
     self._validate_get(paramd, callback);
 
     // don't know (and never will)
     callback({
-        id: paramd.id, 
-        band: paramd.band, 
+        id: paramd.id,
+        band: paramd.band,
         value: undefined,
         error: new Error("N/A"),
     });
@@ -207,17 +211,17 @@ MQTTTransport.prototype.get = function(paramd, callback) {
 /**
  *  See {iotdb.transporter.Transport#update} for documentation.
  */
-MQTTTransport.prototype.update = function(paramd, callback) {
+MQTTTransport.prototype.update = function (paramd, callback) {
     var self = this;
 
     self._validate_update(paramd, callback);
 
     var value = paramd.value;
     var timestamp = value["@timestamp"];
-    if (!timestamp && _.isBoolean(self.initd.add_timestamp)) {
+    if (!timestamp && _.is.Boolean(self.initd.add_timestamp)) {
         value = _.shallowCopy(value);
         value["@timestamp"] = _.timestamp();
-    } else if (!timestamp && _.isArray(self.initd.add_timestamp) && (self.init.add_timestamp.indexOf(band) > -1)) {
+    } else if (!timestamp && _.is.Array(self.initd.add_timestamp) && (self.init.add_timestamp.indexOf(paramd.band) > -1)) {
         value = _.shallowCopy(value);
         value["@timestamp"] = _.timestamp();
     }
@@ -234,7 +238,7 @@ MQTTTransport.prototype.update = function(paramd, callback) {
 /**
  *  See {iotdb.transporter.Transport#updated} for documentation.
  */
-MQTTTransport.prototype.updated = function(paramd, callback) {
+MQTTTransport.prototype.updated = function (paramd, callback) {
     var self = this;
 
     if (arguments.length === 1) {
@@ -245,8 +249,8 @@ MQTTTransport.prototype.updated = function(paramd, callback) {
     self._validate_updated(paramd, callback);
 
     if (!self._subscribed) {
-        var channel = path.join(self.initd.prefix, "#")
-        self.native.subscribe(channel, function(error) {
+        var channel = path.join(self.initd.prefix, "#");
+        self.native.subscribe(channel, function (error) {
             /* maybe reset _subscribed on mqtt.open? */
             logger.error({
                 method: "publish/on(close)",
@@ -256,7 +260,7 @@ MQTTTransport.prototype.updated = function(paramd, callback) {
         });
     }
 
-    self.native.on("message", function(topic, message, packet) {
+    self.native.on("message", function (topic, message, packet) {
         var parts = self.initd.unchannel(self.initd, topic);
         if (!parts) {
             return;
@@ -274,8 +278,8 @@ MQTTTransport.prototype.updated = function(paramd, callback) {
 
         var d = self.initd.unpack(message, topic_id, topic_band);
         callback({
-            id: topic_id, 
-            band: topic_band, 
+            id: topic_id,
+            band: topic_band,
             value: d,
         });
     });
@@ -286,24 +290,24 @@ MQTTTransport.prototype.updated = function(paramd, callback) {
  *  <p>
  *  MQTT - do nothing
  */
-MQTTTransport.prototype.remove = function(paramd, callback) {
+MQTTTransport.prototype.remove = function (paramd, callback) {
     var self = this;
 
     self._validate_remove(paramd, callback);
 };
 
 /* -- internals -- */
-var _encode = function(s) {
-    return s.replace(/[\/#+]/g, function(c) {
+var _encode = function (s) {
+    return s.replace(/[\/#+]/g, function (c) {
         return '%' + c.charCodeAt(0).toString(16);
     });
 };
 
-var _decode = function(s) {
+var _decode = function (s) {
     return decodeURIComponent(s);
-}
+};
 
-var _unpack = function(d) {
+var _unpack = function (d) {
     if (d.toString) {
         d = d.toString();
     }
@@ -311,7 +315,7 @@ var _unpack = function(d) {
     return JSON.parse(d);
 };
 
-var _pack = function(d) {
+var _pack = function (d) {
     return JSON.stringify(d);
 };
 
