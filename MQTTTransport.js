@@ -220,10 +220,10 @@ MQTTTransport.prototype.update = function (paramd, callback) {
     var timestamp = value["@timestamp"];
     if (!timestamp && _.is.Boolean(self.initd.add_timestamp)) {
         value = _.shallowCopy(value);
-        value["@timestamp"] = _.timestamp();
+        value["@timestamp"] = _.timestamp.make();
     } else if (!timestamp && _.is.Array(self.initd.add_timestamp) && (self.init.add_timestamp.indexOf(paramd.band) > -1)) {
         value = _.shallowCopy(value);
-        value["@timestamp"] = _.timestamp();
+        value["@timestamp"] = _.timestamp.make();
     }
 
     var channel = self.initd.channel(self.initd, paramd.id, paramd.band);
