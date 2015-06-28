@@ -69,6 +69,10 @@ var _pack;
  *  Add a @timestamp to outgoing records.
  *  If an array, the band must be in the array.
  *
+ *  @param {boolean} initd.allow_updated
+ *  If True, allow MQTT to update data (e.g. by receiving
+ *  it over MQTT). Default false
+ *
  *  @param {function} initd.channel
  *  @param {function} initd.unchannel
  *
@@ -87,6 +91,9 @@ var MQTTTransport = function (initd, native) {
             decode: _decode,
             pack: _pack,
             unpack: _unpack,
+            allow_updated: false,
+            client_id: "tr-mqtt-" + _.uid(10),
+            user: null,
         },
         iotdb.keystore().get("/transports/MQTTTransport/initd"), {
             prefix: "",
@@ -105,7 +112,9 @@ var MQTTTransport = function (initd, native) {
     if (native) {
         self.native = native;
     } else {
-        self.native = mqtt.createClient(self.initd.port, self.initd.host);
+        self.native = mqtt.createClient(self.initd.port, self.initd.host, {
+            clientId: self.initd.client_id,
+        });
     }
 
     self.native.on('error', function () {
@@ -247,6 +256,10 @@ MQTTTransport.prototype.updated = function (paramd, callback) {
     }
 
     self._validate_updated(paramd, callback);
+
+    if (!self.initd.allow_updated) {
+        return;
+    }
 
     if (!self._subscribed) {
         var channel = path.join(self.initd.prefix, "#");
