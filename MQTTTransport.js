@@ -23,6 +23,7 @@
 "use strict";
 
 var iotdb = require('iotdb');
+var iotdb_transport = require('iotdb-transport');
 var _ = iotdb._;
 var bunyan = iotdb.bunyan;
 
@@ -46,7 +47,7 @@ var _pack;
 /* --- constructor --- */
 
 /**
- *  See {iotdb.transporter.Transport#Transport} for documentation.
+ *  See {iotdb_transport.Transport#Transport} for documentation.
  *
  *  @param {dictionary} initd
  *
@@ -85,8 +86,8 @@ var MQTTTransport = function (initd, native) {
 
     self.initd = _.defaults(
         initd, {
-            channel: iotdb.transporter.channel,
-            unchannel: iotdb.transporter.unchannel,
+            channel: iotdb_transport.channel,
+            unchannel: iotdb_transport.unchannel,
             encode: _encode,
             decode: _decode,
             pack: _pack,
@@ -135,12 +136,13 @@ var MQTTTransport = function (initd, native) {
     self._subscribed = false;
 };
 
-MQTTTransport.prototype = new iotdb.transporter.Transport();
+MQTTTransport.prototype = new iotdb_transport.Transport();
+MQTTTransport.prototype._class = "MQTTTransport";
 
 /* --- methods --- */
 
 /**
- *  See {iotdb.transporter.Transport#list} for documentation.
+ *  See {iotdb_transport.Transport#list} for documentation.
  *  <p>
  *  MQTT: this does nothing, as we don't have 
  *  a concept of a databse. 
@@ -162,7 +164,7 @@ MQTTTransport.prototype.list = function (paramd, callback) {
 };
 
 /**
- *  See {iotdb.transporter.Transport#added} for documentation.
+ *  See {iotdb_transport.Transport#added} for documentation.
  *  <p>
  *  NOT FINISHED
  */
@@ -178,7 +180,7 @@ MQTTTransport.prototype.added = function (paramd, callback) {
 };
 
 /**
- *  See {iotdb.transporter.Transport#about} for documentation.
+ *  See {iotdb_transport.Transport#about} for documentation.
  *  <p>
  *  MQTT: this does nothing, as we don't have 
  *  a concept of a databse
@@ -198,7 +200,7 @@ MQTTTransport.prototype.about = function (paramd, callback) {
 };
 
 /**
- *  See {iotdb.transporter.Transport#get} for documentation.
+ *  See {iotdb_transport.Transport#get} for documentation.
  *  <p>
  *  MQTT: this does nothing, as we don't have 
  *  a concept of a databse
@@ -218,7 +220,7 @@ MQTTTransport.prototype.get = function (paramd, callback) {
 };
 
 /**
- *  See {iotdb.transporter.Transport#update} for documentation.
+ *  See {iotdb_transport.Transport#update} for documentation.
  */
 MQTTTransport.prototype.update = function (paramd, callback) {
     var self = this;
@@ -245,7 +247,7 @@ MQTTTransport.prototype.update = function (paramd, callback) {
 };
 
 /**
- *  See {iotdb.transporter.Transport#updated} for documentation.
+ *  See {iotdb_transport.Transport#updated} for documentation.
  */
 MQTTTransport.prototype.updated = function (paramd, callback) {
     var self = this;
@@ -299,7 +301,7 @@ MQTTTransport.prototype.updated = function (paramd, callback) {
 };
 
 /**
- *  See {iotdb.transporter.Transport#remove} for documentation.
+ *  See {iotdb_transport.Transport#remove} for documentation.
  *  <p>
  *  MQTT - do nothing
  */

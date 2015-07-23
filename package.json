@@ -25,6 +25,7 @@
     "main": "index.js", 
     "name": "iotdb-transport-mqtt", 
     "peerDependencies": {
+        "iotdb-transport": "",
         "iotdb": "~0.8.1"
     }, 
     "private": false, 
