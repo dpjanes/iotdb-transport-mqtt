@@ -26,6 +26,7 @@ var iotdb = require('iotdb');
 var iotdb_transport = require('iotdb-transport');
 var _ = iotdb._;
 
+var url_join = require('url-join');
 var path = require('path');
 var mqtt = require('mqtt');
 
@@ -263,7 +264,7 @@ MQTTTransport.prototype.updated = function (paramd, callback) {
     }
 
     if (!self._subscribed) {
-        var channel = path.join(self.initd.prefix, "#");
+        var channel = url_join(self.initd.prefix, "#");
         self.native.subscribe(channel, function (error) {
             /* maybe reset _subscribed on mqtt.open? */
             logger.error({
