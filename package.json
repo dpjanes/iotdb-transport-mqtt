@@ -5,6 +5,7 @@
     }, 
     "dependencies": {
         "iotdb": ">=0.10.0", 
+        "iotdb-transport": "~0.0.14", 
         "mqtt": "~1.4.1", 
         "url-join": "~0.0.1", 
         "validate": "~2.1.6"
@@ -26,9 +27,6 @@
     "license": "Apache-2.0", 
     "main": "index.js", 
     "name": "iotdb-transport-mqtt", 
-    "peerDependencies": {
-        "iotdb-transport": "~0.0.13"
-    }, 
     "private": false, 
     "repository": {
         "type": "git", 
@@ -37,5 +35,5 @@
     "scripts": {
         "test": "grunt"
     }, 
-    "version": "0.0.13"
+    "version": "0.0.14"
 }
