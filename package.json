@@ -4,6 +4,7 @@
         "url": "https://github.com/dpjanes/iotdb-transport-mqtt/issues"
     }, 
     "dependencies": {
+        "iotdb": ">=0.10.0", 
         "mqtt": "~1.4.1", 
         "url-join": "~0.0.1", 
         "validate": "~2.1.6"
@@ -26,8 +27,7 @@
     "main": "index.js", 
     "name": "iotdb-transport-mqtt", 
     "peerDependencies": {
-        "iotdb": "~0.10.10", 
-        "iotdb-transport": "~0.0.11"
+        "iotdb-transport": "~0.0.13"
     }, 
     "private": false, 
     "repository": {
@@ -37,5 +37,5 @@
     "scripts": {
         "test": "grunt"
     }, 
-    "version": "0.0.11"
+    "version": "0.0.13"
 }
