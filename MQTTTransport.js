@@ -29,6 +29,7 @@ var _ = iotdb._;
 var url_join = require('url-join');
 var path = require('path');
 var mqtt = require('mqtt');
+var fs = require('fs');
 
 var util = require('util');
 var url = require('url');
@@ -99,23 +100,67 @@ var MQTTTransport = function (initd, native) {
         iotdb.keystore().get("/transports/MQTTTransport/initd"), {
             prefix: "",
             host: "",
-            port: 1883,
             retain: false,
             qos: 0,
             add_timestamp: false,
+
+            // secure conections
+            protocol: null,
+            port: null,
+            ca: null,
+            cert: null,
+            key: null,
         }
     );
-
-    if (!self.initd.host) {
-        throw new Error("MQTTTransport: expected initd.host");
-    }
 
     if (native) {
         self.native = native;
     } else {
+        /*
         self.native = mqtt.createClient(self.initd.port, self.initd.host, {
             clientId: self.initd.client_id,
         });
+        */
+
+        if (!self.initd.host) {
+            throw new Error("MQTTTransport: expected initd.host");
+        }
+
+        var connectd = {
+            clientId: self.initd.client_id,
+        };
+
+        if (self.initd.key) {
+            connectd.key = fs.readFileSync(self.initd.key);
+        }
+
+        if (self.initd.cert) {
+            connectd.cert = fs.readFileSync(self.initd.cert);
+        }
+
+        if (self.initd.ca) {
+            connectd.ca = fs.readFileSync(self.initd.ca);
+        }
+
+        if (!self.initd.protocol) {
+            if (connectd.key && connectd.cert) {
+                self.initd.protocol = 'mqtts';
+            } else {
+                self.initd.protocol = 'mqtt';
+            }
+        }
+
+        if (!self.initd.port) {
+            if (self.initd.protocol === 'mqtts') {
+                self.initd.port = 8883;
+            } else {
+                self.initd.port = 1883;
+            }
+        }
+
+        var url = util.format("%s://%s:%s", self.initd.protocol || "mqtt", self.initd.host, self.initd.port);
+
+        self.native = mqtt.connect(url, connectd);
     }
 
     self.native.on('error', function () {
