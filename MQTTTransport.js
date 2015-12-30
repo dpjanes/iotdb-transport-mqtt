@@ -161,6 +161,12 @@ var MQTTTransport = function (initd, native) {
         var url = util.format("%s://%s:%s", self.initd.protocol || "mqtt", self.initd.host, self.initd.port);
 
         self.native = mqtt.connect(url, connectd);
+        self.native.on('connect', function () {
+            logger.info({
+                method: "publish/on(connect)",
+                url: url,
+            }, "connected");
+        });
     }
 
     self.native.on('error', function () {
