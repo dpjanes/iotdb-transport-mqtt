@@ -278,6 +278,8 @@ MQTTTransport.prototype.update = function (paramd, callback) {
 
     self._validate_update(paramd, callback);
 
+    paramd = _.shallowCopy(paramd);
+
     var value = paramd.value;
     var timestamp = value["@timestamp"];
     if (!timestamp && _.is.Boolean(self.initd.add_timestamp)) {
@@ -294,7 +296,10 @@ MQTTTransport.prototype.update = function (paramd, callback) {
     self.native.publish(channel, d, {
         retain: self.initd.retain,
         qos: self.initd.qos,
+    }, function() {
+        callback(paramd);
     });
+
 };
 
 /**
