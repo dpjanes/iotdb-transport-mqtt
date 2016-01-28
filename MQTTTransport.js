@@ -24,6 +24,7 @@
 
 var iotdb = require('iotdb');
 var iotdb_transport = require('iotdb-transport');
+var errors = iotdb_transport.errors;
 var _ = iotdb._;
 
 var url_join = require('url-join');
@@ -238,22 +239,22 @@ MQTTTransport.prototype.added = function (paramd, callback) {
 };
 
 /**
- *  See {iotdb_transport.Transport#about} for documentation.
+ *  See {iotdb_transport.Transport#bands} for documentation.
  *  <p>
  *  MQTT: this does nothing, as we don't have 
  *  a concept of a databse
  */
-MQTTTransport.prototype.about = function (paramd, callback) {
+MQTTTransport.prototype.bands = function (paramd, callback) {
     var self = this;
 
-    self._validate_about(paramd, callback);
+    self._validate_bands(paramd, callback);
 
     // don't know (and never will)
     callback({
         id: paramd.id,
         band: paramd.band,
-        value: undefined,
-        error: new Error("N/A"),
+        value: null,
+        error: new errors.NotImplemented(),
     });
 };
 
