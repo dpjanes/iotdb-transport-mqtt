@@ -166,6 +166,13 @@ var MQTTTransport = function (initd, native) {
                 method: "publish/on(connect)",
                 url: url,
             }, "connected");
+
+            console.log("===============================");
+            console.log("=== MQTT Server Up");
+            console.log("=== ");
+            console.log("=== Connect at:");
+            console.log("=== " + url);
+            console.log("===============================");
         });
     }
 
