@@ -259,13 +259,10 @@ MQTTTransport.prototype.get = function (paramd, callback) {
 
     self._validate_get(paramd, callback);
 
-    // don't know (and never will)
-    callback({
-        id: paramd.id,
-        band: paramd.band,
-        value: undefined,
-        error: new Error("N/A"),
-    });
+    var gd = _.shallowCopy(paramd);
+    gd.value = null;
+
+    callback(new errors.NotImplemented(), gd);
 };
 
 /**
