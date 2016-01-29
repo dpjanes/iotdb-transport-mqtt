@@ -273,7 +273,7 @@ MQTTTransport.prototype.put = function (paramd, callback) {
 
     self._validate_update(paramd, callback);
 
-    paramd = _.shallowCopy(paramd);
+    var pd = _.shallowCopy(paramd);
 
     var value = paramd.value;
     var timestamp = value["@timestamp"];
@@ -292,7 +292,8 @@ MQTTTransport.prototype.put = function (paramd, callback) {
         retain: self.initd.retain,
         qos: self.initd.qos,
     }, function() {
-        callback(paramd);
+        // TD: is there an error we can use?
+        callback(null, pd);
     });
 
 };
