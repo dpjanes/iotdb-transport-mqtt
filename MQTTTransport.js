@@ -335,7 +335,7 @@ MQTTTransport.prototype.updated = function (paramd, callback) {
         }
 
         var d = self.initd.unpack(message, topic_id, topic_band);
-        callback({
+        callback(null, {
             id: topic_id,
             band: topic_band,
             value: d,
