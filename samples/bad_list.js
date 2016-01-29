@@ -15,6 +15,15 @@ var p = new Transport({
     host: "mqtt.iotdb.org",
     prefix: "/u/mqtt-transport",
 });
-p.list(function(d) {
-    console.log(d.id);
+p.list(function(error, ld) {
+    if (error) {
+        console.log("#", "error", error);
+        return;
+    }
+    if (!ld) {
+        console.log("+", "<end>");
+        break;
+    }
+
+    console.log("+", ld.id);
 });

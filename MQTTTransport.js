@@ -208,13 +208,12 @@ MQTTTransport.prototype._class = "MQTTTransport";
  */
 MQTTTransport.prototype.list = function (paramd, callback) {
     var self = this;
+    var ld;
 
     self._validate_list(paramd, callback);
 
-    callback({
-        end: true,
-        error: new Error("N/A"),
-    });
+    ld = _.shallowCopy(paramd);
+    callback(new errors.NeverImplemented(), ld);
 };
 
 /**
