@@ -239,13 +239,9 @@ MQTTTransport.prototype.bands = function (paramd, callback) {
 
     self._validate_bands(paramd, callback);
 
-    // don't know (and never will)
-    callback({
-        id: paramd.id,
-        band: paramd.band,
-        value: null,
-        error: new errors.NotImplemented(),
-    });
+    var bd = _.shallowCopy(paramd);
+
+    callback(new errors.NeverImplemented(), bd);
 };
 
 /**
