@@ -286,7 +286,7 @@ MQTTTransport.prototype.put = function (paramd, callback) {
     self.native.publish(channel, d, {
         retain: self.initd.retain,
         qos: self.initd.qos,
-    }, function() {
+    }, function () {
         // TD: is there an error we can use?
         callback(null, pd);
     });
