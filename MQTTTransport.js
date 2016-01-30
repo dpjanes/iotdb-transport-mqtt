@@ -212,7 +212,7 @@ MQTTTransport.prototype.list = function (paramd, callback) {
 
     self._validate_list(paramd, callback);
 
-    ld = _.shallowCopy(paramd);
+    ld = _.d.clone.shallow(paramd);
     callback(new errors.NeverImplemented(), ld);
 };
 
@@ -238,7 +238,7 @@ MQTTTransport.prototype.bands = function (paramd, callback) {
 
     self._validate_bands(paramd, callback);
 
-    var bd = _.shallowCopy(paramd);
+    var bd = _.d.clone.shallow(paramd);
 
     callback(new errors.NeverImplemented(), bd);
 };
@@ -254,7 +254,7 @@ MQTTTransport.prototype.get = function (paramd, callback) {
 
     self._validate_get(paramd, callback);
 
-    var gd = _.shallowCopy(paramd);
+    var gd = _.d.clone.shallow(paramd);
     gd.value = null;
 
     callback(new errors.NotImplemented(), gd);
@@ -268,15 +268,15 @@ MQTTTransport.prototype.put = function (paramd, callback) {
 
     self._validate_update(paramd, callback);
 
-    var pd = _.shallowCopy(paramd);
+    var pd = _.d.clone.shallow(paramd);
 
     var value = paramd.value;
     var timestamp = value["@timestamp"];
     if (!timestamp && _.is.Boolean(self.initd.add_timestamp)) {
-        value = _.shallowCopy(value);
+        value = _.d.clone.shallow(value);
         value["@timestamp"] = _.timestamp.make();
     } else if (!timestamp && _.is.Array(self.initd.add_timestamp) && (self.init.add_timestamp.indexOf(paramd.band) > -1)) {
-        value = _.shallowCopy(value);
+        value = _.d.clone.shallow(value);
         value["@timestamp"] = _.timestamp.make();
     }
 
@@ -352,7 +352,7 @@ MQTTTransport.prototype.remove = function (paramd, callback) {
 
     self._validate_remove(paramd, callback);
 
-    var rd = _.shallowCopy(paramd);
+    var rd = _.d.clone.shallow(paramd);
     delete rd.band;
     delete rd.value;
 
