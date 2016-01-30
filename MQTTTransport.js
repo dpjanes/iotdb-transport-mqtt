@@ -351,6 +351,12 @@ MQTTTransport.prototype.remove = function (paramd, callback) {
     var self = this;
 
     self._validate_remove(paramd, callback);
+
+    var rd = _.shallowCopy(paramd);
+    delete rd.band;
+    delete rd.value;
+
+    callback(new errors.NeverImplemented(), rd);
 };
 
 /* -- internals -- */
