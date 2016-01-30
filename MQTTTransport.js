@@ -169,10 +169,10 @@ var MQTTTransport = function (initd, native) {
             }, "connected");
 
             console.log("===============================");
-            console.log("=== MQTT Server Up");
+            console.log("=== MQTT Server Connected");
             console.log("=== ");
             console.log("=== Connect at:");
-            console.log("=== " + url);
+            console.log("=== " + url_join(url, self.initd.prefix));
             console.log("===============================");
         });
     }
@@ -306,14 +306,14 @@ MQTTTransport.prototype.updated = function (paramd, callback) {
     }
 
     if (!self._subscribed) {
-        var channel = url_join(self.initd.prefix, "#");
+        var channel = self.initd.prefix + "/#";
         self.native.subscribe(channel, function (error) {
-            /* maybe reset _subscribed on mqtt.open? */
-            logger.error({
-                method: "publish/on(close)",
-                arguments: arguments,
-                cause: "likely MQTT issue - this is probably very bad",
-            }, "unexpected error subscribing");
+            if (error) {
+                logger.error({
+                    method: "publish/on(close)",
+                    cause: "likely MQTT issue - this is probably very bad",
+                }, "unexpected error subscribing");
+            }
         });
     }
 
