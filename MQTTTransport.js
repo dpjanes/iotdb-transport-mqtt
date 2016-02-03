@@ -95,7 +95,7 @@ var MQTTTransport = function (initd, native) {
             pack: _pack,
             unpack: _unpack,
             allow_updated: false,
-            client_id: "tr-mqtt-" + _.uid(10),
+            client_id: "tr-mqtt-" + _.random.id(10),
             user: null,
         },
         iotdb.keystore().get("/transports/MQTTTransport/initd"), {
