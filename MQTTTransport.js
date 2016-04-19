@@ -99,6 +99,8 @@ var MQTTTransport = function (initd, native) {
             user: null,
         },
         iotdb.keystore().get("/transports/MQTTTransport/initd"), {
+            verbose: false,
+
             prefix: "",
             host: "",
             retain: false,
@@ -161,6 +163,13 @@ var MQTTTransport = function (initd, native) {
 
         var url = util.format("%s://%s:%s", self.initd.protocol || "mqtt", self.initd.host, self.initd.port);
 
+        if (self.initd.verbose) {
+            logger.info({
+                url: url,
+                // connectd: connectd,
+            }, "VERBOSE: connect info");
+        }
+
         self.native = mqtt.connect(url, connectd);
         self.native.on('connect', function () {
             logger.info({
@@ -181,13 +190,14 @@ var MQTTTransport = function (initd, native) {
         logger.error({
             method: "publish/on(error)",
             arguments: arguments,
+            url: url,
             cause: "likely MQTT issue - will automatically reconnect soon",
         }, "unexpected error");
     });
     self.native.on('close', function () {
-        logger.error({
+        logger.info({
             method: "publish/on(close)",
-            arguments: arguments,
+            url: url,
             cause: "likely MQTT issue - will automatically reconnect soon",
         }, "unexpected close");
     });
@@ -282,12 +292,20 @@ MQTTTransport.prototype.put = function (paramd, callback) {
 
     var channel = self.initd.channel(self.initd, paramd.id, paramd.band);
     var d = self.initd.pack(value, paramd.id, paramd.band);
+    
+    if (self.initd.verbose) {
+        logger.info({
+            channel: channel,
+            d: d,
+            retain: self.initd.retain,
+            qos: self.initd.qos,
+        }, "VERBOSE: sending message");
+    }
 
     self.native.publish(channel, d, {
         retain: self.initd.retain,
         qos: self.initd.qos,
     }, function () {
-        // TD: is there an error we can use?
         callback(null, pd);
     });
 
