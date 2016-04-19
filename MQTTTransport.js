@@ -292,7 +292,7 @@ MQTTTransport.prototype.put = function (paramd, callback) {
 
     var channel = self.initd.channel(self.initd, paramd.id, paramd.band);
     var d = self.initd.pack(value, paramd.id, paramd.band);
-    
+
     if (self.initd.verbose) {
         logger.info({
             channel: channel,
