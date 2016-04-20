@@ -46,6 +46,109 @@ var _decode;
 var _unpack;
 var _pack;
 
+
+/* --- we generalize this a little so MQTT can be created outside --- */
+var _setup_initd = function(initd) {
+    return _.d.compose.shallow(
+        initd, {
+            channel: iotdb_transport.channel,
+            unchannel: iotdb_transport.unchannel,
+            encode: _encode,
+            decode: _decode,
+            pack: _pack,
+            unpack: _unpack,
+            allow_updated: false,
+            client_id: "tr-mqtt-" + _.random.id(10),
+            user: null,
+        },
+        iotdb.keystore().get("/transports/MQTTTransport/initd"), {
+            verbose: false,
+
+            prefix: "",
+            host: "",
+            retain: false,
+            qos: 0,
+            add_timestamp: false,
+
+            // secure conections
+            protocol: null,
+            port: null,
+            ca: null,
+            cert: null,
+            key: null,
+        }
+    );
+};
+
+var _mqtt_connect = function(initd) {
+    if (!initd.host) {
+        throw new Error("MQTTTransport: expected initd.host");
+    }
+
+    var connectd = {
+        clientId: initd.client_id,
+    };
+
+    if (initd.key) {
+        connectd.key = fs.readFileSync(initd.key);
+    }
+
+    if (initd.cert) {
+        connectd.cert = fs.readFileSync(initd.cert);
+    }
+
+    if (initd.ca) {
+        connectd.ca = fs.readFileSync(initd.ca);
+    }
+
+    if (!initd.protocol) {
+        if (connectd.key && connectd.cert) {
+            initd.protocol = 'mqtts';
+        } else {
+            initd.protocol = 'mqtt';
+        }
+    }
+
+    if (!initd.port) {
+        if (initd.protocol === 'mqtts') {
+            initd.port = 8883;
+        } else {
+            initd.port = 1883;
+        }
+    }
+
+    var url = util.format("%s://%s:%s", initd.protocol || "mqtt", initd.host, initd.port);
+
+    if (initd.verbose) {
+        logger.info({
+            url: url,
+            // connectd: connectd,
+        }, "VERBOSE: connect info");
+    }
+
+    var native = mqtt.connect(url, connectd);
+    native.on('connect', function () {
+        logger.info({
+            method: "publish/on(connect)",
+            url: url,
+        }, "connected");
+
+        console.log("===============================");
+        console.log("=== MQTT Server Connected");
+        console.log("=== ");
+        console.log("=== Connect at:");
+        console.log("=== " + url_join(url, initd.prefix));
+        console.log("===============================");
+    });
+
+    return native;
+};
+
+var mqtt_connect = function(initd) {
+    return _mqtt_connect(_setup_initd(initd));
+};
+
+
 /* --- constructor --- */
 
 /**
@@ -86,104 +189,12 @@ var _pack;
 var MQTTTransport = function (initd, native) {
     var self = this;
 
-    self.initd = _.defaults(
-        initd, {
-            channel: iotdb_transport.channel,
-            unchannel: iotdb_transport.unchannel,
-            encode: _encode,
-            decode: _decode,
-            pack: _pack,
-            unpack: _unpack,
-            allow_updated: false,
-            client_id: "tr-mqtt-" + _.random.id(10),
-            user: null,
-        },
-        iotdb.keystore().get("/transports/MQTTTransport/initd"), {
-            verbose: false,
-
-            prefix: "",
-            host: "",
-            retain: false,
-            qos: 0,
-            add_timestamp: false,
-
-            // secure conections
-            protocol: null,
-            port: null,
-            ca: null,
-            cert: null,
-            key: null,
-        }
-    );
+    self.initd = _setup_initd(initd);
 
     if (native) {
         self.native = native;
     } else {
-        /*
-        self.native = mqtt.createClient(self.initd.port, self.initd.host, {
-            clientId: self.initd.client_id,
-        });
-        */
-
-        if (!self.initd.host) {
-            throw new Error("MQTTTransport: expected initd.host");
-        }
-
-        var connectd = {
-            clientId: self.initd.client_id,
-        };
-
-        if (self.initd.key) {
-            connectd.key = fs.readFileSync(self.initd.key);
-        }
-
-        if (self.initd.cert) {
-            connectd.cert = fs.readFileSync(self.initd.cert);
-        }
-
-        if (self.initd.ca) {
-            connectd.ca = fs.readFileSync(self.initd.ca);
-        }
-
-        if (!self.initd.protocol) {
-            if (connectd.key && connectd.cert) {
-                self.initd.protocol = 'mqtts';
-            } else {
-                self.initd.protocol = 'mqtt';
-            }
-        }
-
-        if (!self.initd.port) {
-            if (self.initd.protocol === 'mqtts') {
-                self.initd.port = 8883;
-            } else {
-                self.initd.port = 1883;
-            }
-        }
-
-        var url = util.format("%s://%s:%s", self.initd.protocol || "mqtt", self.initd.host, self.initd.port);
-
-        if (self.initd.verbose) {
-            logger.info({
-                url: url,
-                // connectd: connectd,
-            }, "VERBOSE: connect info");
-        }
-
-        self.native = mqtt.connect(url, connectd);
-        self.native.on('connect', function () {
-            logger.info({
-                method: "publish/on(connect)",
-                url: url,
-            }, "connected");
-
-            console.log("===============================");
-            console.log("=== MQTT Server Connected");
-            console.log("=== ");
-            console.log("=== Connect at:");
-            console.log("=== " + url_join(url, self.initd.prefix));
-            console.log("===============================");
-        });
+        self.native = _mqtt_connect(self.initd);
     }
 
     self.native.on('error', function () {
@@ -404,3 +415,4 @@ var _pack = function (d) {
  *  API
  */
 exports.MQTTTransport = MQTTTransport;
+exports.mqtt_connect = mqtt_connect;

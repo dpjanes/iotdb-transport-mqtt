@@ -22,4 +22,6 @@
 
 "use strict";
 
-exports.Transport = require('./MQTTTransport').MQTTTransport;
+var MQTTTransport = require('./MQTTTransport');
+exports.Transport = MQTTTransport.MQTTTransport;
+exports.mqtt_connect = MQTTTransport.mqtt_connect;
