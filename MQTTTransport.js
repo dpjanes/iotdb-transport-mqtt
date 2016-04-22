@@ -80,7 +80,7 @@ var _setup_initd = function(initd) {
     );
 };
 
-var _mqtt_connect = function(initd) {
+var _connect = function(initd) {
     if (!initd.host) {
         throw new Error("MQTTTransport: expected initd.host");
     }
@@ -144,8 +144,24 @@ var _mqtt_connect = function(initd) {
     return native;
 };
 
-var mqtt_connect = function(initd) {
-    return _mqtt_connect(_setup_initd(initd));
+/**
+ *  'done' is optional, but if used you're guarenteed a connection (or error)
+ */
+var connect = function(initd, done) {
+    const client = _connect(_setup_initd(initd));
+
+    done = done || _.noop;
+
+    client.once('connect', function () {
+        done(null, client);
+        done = _.noop;
+    });
+    client.once('error', function (error) {
+        done(error);
+        done = _.noop;
+    });
+
+    return client;
 };
 
 
@@ -194,7 +210,7 @@ var MQTTTransport = function (initd, native) {
     if (native) {
         self.native = native;
     } else {
-        self.native = _mqtt_connect(self.initd);
+        self.native = _connect(self.initd);
     }
 
     self.native.on('error', function () {
@@ -304,20 +320,30 @@ MQTTTransport.prototype.put = function (paramd, callback) {
     var channel = self.initd.channel(self.initd, paramd.id, paramd.band);
     var d = self.initd.pack(value, paramd.id, paramd.band);
 
-    if (self.initd.verbose) {
-        logger.info({
-            channel: channel,
-            d: d,
+    self._mqtt_client(function(error, mqtt_client) {
+        if (error) {
+            logger.error({
+                method: "put/_mqtt_client",
+                cause: "likely MQTT issue - see previous error messages",
+            }, "could not get MQTT client");
+            return;
+        }
+
+        if (self.initd.verbose) {
+            logger.info({
+                channel: channel,
+                d: d,
+                retain: self.initd.retain,
+                qos: self.initd.qos,
+            }, "VERBOSE: sending message");
+        }
+
+        mqtt_client.publish(channel, d, {
             retain: self.initd.retain,
             qos: self.initd.qos,
-        }, "VERBOSE: sending message");
-    }
-
-    self.native.publish(channel, d, {
-        retain: self.initd.retain,
-        qos: self.initd.qos,
-    }, function () {
-        callback(null, pd);
+        }, function () {
+            callback(null, pd);
+        });
     });
 
 };
@@ -334,39 +360,49 @@ MQTTTransport.prototype.updated = function (paramd, callback) {
         return;
     }
 
-    if (!self._subscribed) {
-        var channel = self.initd.prefix + "/#";
-        self.native.subscribe(channel, function (error) {
-            if (error) {
-                logger.error({
-                    method: "publish/on(close)",
-                    cause: "likely MQTT issue - this is probably very bad",
-                }, "unexpected error subscribing");
+    self._mqtt_client(function(error, mqtt_client) {
+        if (error) {
+            logger.error({
+                method: "updated/_mqtt_client",
+                cause: "likely MQTT issue - see previous error messages",
+            }, "could not get MQTT client");
+            return;
+        }
+
+        if (!self._subscribed) {
+            var channel = self.initd.prefix + "/#";
+            self.native.subscribe(channel, function (error) {
+                if (error) {
+                    logger.error({
+                        method: "updated/mqtt.subscribe",
+                        cause: "likely MQTT issue - this is probably very bad",
+                    }, "unexpected error subscribing");
+                }
+            });
+        }
+
+        self.native.on("message", function (topic, message, packet) {
+            var parts = self.initd.unchannel(self.initd, topic);
+            if (!parts) {
+                return;
             }
-        });
-    }
 
-    self.native.on("message", function (topic, message, packet) {
-        var parts = self.initd.unchannel(self.initd, topic);
-        if (!parts) {
-            return;
-        }
+            var topic_id = parts[0];
+            var topic_band = parts[1];
 
-        var topic_id = parts[0];
-        var topic_band = parts[1];
+            if (paramd.id && (topic_id !== paramd.id)) {
+                return;
+            }
+            if (paramd.band && (topic_band !== paramd.band)) {
+                return;
+            }
 
-        if (paramd.id && (topic_id !== paramd.id)) {
-            return;
-        }
-        if (paramd.band && (topic_band !== paramd.band)) {
-            return;
-        }
-
-        var d = self.initd.unpack(message, topic_id, topic_band);
-        callback(null, {
-            id: topic_id,
-            band: topic_band,
-            value: d,
+            var d = self.initd.unpack(message, topic_id, topic_band);
+            callback(null, {
+                id: topic_id,
+                band: topic_band,
+                value: d,
+            });
         });
     });
 };
@@ -386,6 +422,30 @@ MQTTTransport.prototype.remove = function (paramd, callback) {
     delete rd.value;
 
     callback(new errors.NeverImplemented(), rd);
+};
+
+/**
+ *  Return a _connected_ MQTT client
+ */
+MQTTTransport.prototype._mqtt_client = function (callback) {
+    var self = this;
+
+    if (!self.native)  {
+        logger.error({
+            method: "_mqtt_client",
+            cause: "likely programming issue",
+        }, "no MQTT client?");
+
+        return callback(new errors.Internal("no MQTT client"));
+    }
+
+    if (self.native.ready) {
+        callback(null, self.native);
+    } else {
+        self.native.once("connect", function() {
+            callback(null, self.native);
+        });
+    }
 };
 
 /* -- internals -- */
@@ -415,4 +475,4 @@ var _pack = function (d) {
  *  API
  */
 exports.MQTTTransport = MQTTTransport;
-exports.mqtt_connect = mqtt_connect;
+exports.connect = connect;
