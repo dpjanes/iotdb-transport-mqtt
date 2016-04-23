@@ -22,6 +22,8 @@
 
 "use strict";
 
+// require('longjohn')
+
 var iotdb = require('iotdb');
 var iotdb_transport = require('iotdb-transport');
 var errors = iotdb_transport.errors;
@@ -370,7 +372,8 @@ MQTTTransport.prototype.updated = function (paramd, callback) {
         }
 
         if (!self._subscribed) {
-            var channel = self.initd.prefix + "/#";
+            // var channel = self.initd.prefix + "/#";
+            var channel = self.initd.channel(self.initd, "#");
             self.native.subscribe(channel, function (error) {
                 if (error) {
                     logger.error({
@@ -382,7 +385,7 @@ MQTTTransport.prototype.updated = function (paramd, callback) {
         }
 
         self.native.on("message", function (topic, message, packet) {
-            var parts = self.initd.unchannel(self.initd, topic);
+            var parts = self.initd.unchannel(self.initd, topic, message);
             if (!parts) {
                 return;
             }
@@ -439,7 +442,7 @@ MQTTTransport.prototype._mqtt_client = function (callback) {
         return callback(new errors.Internal("no MQTT client"));
     }
 
-    if (self.native.ready) {
+    if (self.native.connected) {
         callback(null, self.native);
     } else {
         self.native.once("connect", function() {
