@@ -5,9 +5,8 @@
     }, 
     "dependencies": {
         "iotdb": ">=0.14.0", 
-        "iotdb-transport": "~0.0.32", 
+        "iotdb-transport": "~0.0.34", 
         "mqtt": "~1.10.0", 
-        "url-join": "~1.1.0", 
         "validate": "~3.0.1"
     }, 
     "description": "HomeStar / IOTDB Bridge for Filesystems", 
@@ -18,7 +17,7 @@
         "grunt-contrib-uglify": "~1.0.1", 
         "grunt-contrib-watch": "~1.0.0", 
         "grunt-jsbeautifier": "~0.2.12", 
-        "jshint-stylish": "~2.1.0", 
+        "jshint-stylish": "~2.2.0", 
         "load-grunt-tasks": "~3.5.0", 
         "request": "~2.72.0"
     }, 
@@ -35,5 +34,5 @@
     "scripts": {
         "test": "grunt"
     }, 
-    "version": "0.0.24"
+    "version": "0.0.25"
 }
