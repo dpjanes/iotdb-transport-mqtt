@@ -24,20 +24,18 @@
 
 // require('longjohn')
 
-var iotdb = require('iotdb');
-var iotdb_transport = require('iotdb-transport');
-var errors = iotdb_transport.errors;
-var _ = iotdb._;
+const iotdb = require('iotdb');
+const iotdb_transport = require('iotdb-transport');
+const errors = require('iotdb-errors');
+const _ = iotdb._;
 
-var url_join = require('url-join');
-var path = require('path');
-var mqtt = require('mqtt');
-var fs = require('fs');
+const path = require('path');
+const mqtt = require('mqtt');
+const fs = require('fs');
 
-var util = require('util');
-var url = require('url');
+const util = require('util');
 
-var logger = iotdb.logger({
+const logger = iotdb.logger({
     name: 'iotdb-transport-mqtt',
     module: 'MQTTTransport',
 });
@@ -50,7 +48,7 @@ var _pack;
 
 
 /* --- we generalize this a little so MQTT can be created outside --- */
-var _setup_initd = function(initd) {
+const _setup_initd = function(initd) {
     return _.d.compose.shallow(
         initd, {
             channel: iotdb_transport.channel,
@@ -82,7 +80,7 @@ var _setup_initd = function(initd) {
     );
 };
 
-var _connect = function(initd) {
+const _connect = function(initd) {
     if (!initd.host) {
         throw new Error("MQTTTransport: expected initd.host");
     }
@@ -119,27 +117,27 @@ var _connect = function(initd) {
         }
     }
 
-    var url = util.format("%s://%s:%s", initd.protocol || "mqtt", initd.host, initd.port);
+    initd.url = util.format("%s://%s:%s", initd.protocol || "mqtt", initd.host, initd.port);
 
     if (initd.verbose) {
         logger.info({
-            url: url,
+            url: initd.url,
             // connectd: connectd,
         }, "VERBOSE: connect info");
     }
 
-    var native = mqtt.connect(url, connectd);
+    var native = mqtt.connect(initd.url, connectd);
     native.on('connect', function () {
         logger.info({
             method: "publish/on(connect)",
-            url: url,
+            url: initd.url,
         }, "connected");
 
         console.log("===============================");
         console.log("=== MQTT Server Connected");
         console.log("=== ");
         console.log("=== Connect at:");
-        console.log("=== " + url_join(url, initd.prefix));
+        console.log("=== " + _.net.url.join(initd.url, initd.prefix));
         console.log("===============================");
     });
 
@@ -149,7 +147,7 @@ var _connect = function(initd) {
 /**
  *  'done' is optional, but if used you're guarenteed a connection (or error)
  */
-var connect = function(initd, done) {
+const connect = function(initd, done) {
     const client = _connect(_setup_initd(initd));
 
     done = done || _.noop;
@@ -204,7 +202,7 @@ var connect = function(initd, done) {
  *  If defined, this will be used for the MQTT client / connection.
  *  Otherwise we will make our own.
  */
-var MQTTTransport = function (initd, native) {
+const MQTTTransport = function (initd, native) {
     var self = this;
 
     self.initd = _setup_initd(initd);
@@ -215,18 +213,18 @@ var MQTTTransport = function (initd, native) {
         self.native = _connect(self.initd);
     }
 
-    self.native.on('error', function () {
+    self.native.on('error', function (error) {
         logger.error({
             method: "publish/on(error)",
-            arguments: arguments,
-            url: url,
+            error: _.error.message(error),
+            url: initd.url,
             cause: "likely MQTT issue - will automatically reconnect soon",
         }, "unexpected error");
     });
     self.native.on('close', function () {
         logger.info({
             method: "publish/on(close)",
-            url: url,
+            url: initd.url,
             cause: "likely MQTT issue - will automatically reconnect soon",
         }, "unexpected close");
     });
