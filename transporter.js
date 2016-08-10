@@ -136,6 +136,11 @@ const make = (initd, mqtt) => {
         });
     };
 
+    self.rx.list = (observer, d) => { throw errors.NeverImplemented(); };
+    self.rx.added = (observer, d) => { throw errors.NeverImplemented(); };
+    self.rx.get = (observer, d) => { throw errors.NeverImplemented(); };
+    self.rx.bands = (observer, d) => { throw errors.NeverImplemented(); };
+
     // -- internals
     const _mqtt_ready = done => {
         if (_mqtt.connected) {
