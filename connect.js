@@ -138,6 +138,14 @@ const connect = (initd, done) => {
         done = _.noop;
     });
 
+    client.ensure = (done) => {
+        if (client.connected) {
+            done();
+        } else {
+            client.once("connect", () => done());
+        }
+    };
+
     return client;
 };
 

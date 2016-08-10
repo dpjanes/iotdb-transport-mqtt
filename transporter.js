@@ -3,7 +3,7 @@
  *
  *  David Janes
  *  IOTDB.org
- *  2016-08-05
+ *  2016-08-10
  *
  *  Copyright [2013-2016] [David P. Janes]
  *
@@ -27,22 +27,20 @@ const _ = iotdb._;
 const iotdb_transport = require('iotdb-transport');
 const errors = require('iotdb-errors');
 
-const Rx = require('rx');
-const events = require('events');
 const assert = require('assert');
 
 const connect = require("./connect");
 
 const logger = iotdb.logger({
-    name: 'iotdb-transport-fs',
+    name: 'iotdb-transport-mqtt',
     module: 'transporter',
 });
 
-const make = (initd, mqtt) => {
+const make = (initd, mqtt_client) => {
     const self = iotdb_transport.make();
 
-    const _mqtt = mqtt;
-    assert.ok(_mqtt);
+    const _mqtt_client = mqtt_client;
+    assert.ok(_mqtt_client);
 
     const _initd = _.d.compose.shallow(
         initd, {
@@ -59,7 +57,7 @@ const make = (initd, mqtt) => {
     );
 
     self.rx.put = (observer, d) => {
-        _mqtt_ready(error => {
+        _mqtt_client.ensure(error => {
             if (error) {
                 return observer.onError(error);
             }
@@ -75,7 +73,7 @@ const make = (initd, mqtt) => {
                 }, "VERBOSE: sending message");
             }
 
-            _mqtt.publish(topic, message, {
+            _mqtt_client.publish(topic, message, {
                 retain: _initd.retain,
                 qos: _initd.qos,
             }, error => {
@@ -92,7 +90,7 @@ const make = (initd, mqtt) => {
     let _subscribed = false;
     
     self.rx.updated = (observer, d) => {
-        _mqtt_ready(error => {
+        _mqtt_client.ensure(error => {
             if (error) {
                 logger.error({
                     method: "updated/_mqtt_client",
@@ -105,7 +103,7 @@ const make = (initd, mqtt) => {
                 _subscribed = true;
 
                 const channel = _initd.channel(initd, "#");
-                _mqtt.subscribe(channel, error => {
+                _mqtt_client.subscribe(channel, error => {
                     if (error) {
                         logger.error({
                             method: "updated/mqtt.subscribe",
@@ -116,7 +114,7 @@ const make = (initd, mqtt) => {
                 });
             }
 
-            _mqtt.on("message", (topic, message, packet) => {
+            _mqtt_client.on("message", (topic, message, packet) => {
                 const md = _initd.unchannel(initd, topic, message);
 
                 if (d.id && (md.id !== d.id)) {
@@ -140,15 +138,6 @@ const make = (initd, mqtt) => {
     self.rx.added = (observer, d) => { throw errors.NeverImplemented(); };
     self.rx.get = (observer, d) => { throw errors.NeverImplemented(); };
     self.rx.bands = (observer, d) => { throw errors.NeverImplemented(); };
-
-    // -- internals
-    const _mqtt_ready = done => {
-        if (_mqtt.connected) {
-            done();
-        } else {
-            _mqtt.once("connect", () => done());
-        }
-    };
 
     return self;
 };
