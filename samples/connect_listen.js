@@ -1,11 +1,12 @@
 /*
- *  connect_normal.js
+ *  connect_listen.js
  *
  *  David Janes
  *  IOTDB.org
  *  2016-08-10
  *
- *  Make a HTTP MQTT connect
+ *  Make a HTTP MQTT connect and listen to
+ *  everything (well, JSON messages)
  */
 
 "use strict";
