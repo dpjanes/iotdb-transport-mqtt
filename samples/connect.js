@@ -17,10 +17,24 @@ const connect = require("../connect");
 connect.connect({
     host: "mqtt.iotdb.org",
     verbose: true,
-}, (error, connect) => {
+}, (error, mqtt_client) => {
     if (error) {
         return console.log("#", _.error.message(error));
     }
 
     console.log("start");
+
+    mqtt_client.on("message", (topic, message, packet) => {
+        try {
+            message = JSON.parse(message.toString());
+        } catch (x) {
+            return;
+        }
+        console.log("--");
+        console.log("+", "topic", topic);
+        console.log("+", "message", message);
+    });
+
+    mqtt_client.subscribe("#", (error) => {
+    });
 })
