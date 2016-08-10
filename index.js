@@ -25,3 +25,8 @@
 var MQTTTransport = require('./MQTTTransport');
 exports.Transport = MQTTTransport.MQTTTransport;
 exports.connect = MQTTTransport.connect;
+
+const transporter = require('./transporter');
+exports.make = transporter.make;
+
+
