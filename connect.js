@@ -1,5 +1,5 @@
 /*
- *  server.js
+ *  connect.js
  *
  *  David Janes
  *  IOTDB.org
@@ -64,7 +64,7 @@ const _setup_initd = initd => _.d.compose.shallow(
         key: null,
     });
 
-const _start = initd => {
+const _connect = initd => {
     assert.ok(initd.host, "expected initd.host");
 
     const connectd = {
@@ -126,8 +126,8 @@ const _start = initd => {
     return native;
 };
 
-const start = (initd, done) => {
-    const client = _start(_setup_initd(initd));
+const connect = (initd, done) => {
+    const client = _connect(_setup_initd(initd));
 
     client.once('connect', () => {
         done(null, client);
@@ -144,4 +144,4 @@ const start = (initd, done) => {
 /**
  *  API
  */
-exports.start = start;
+exports.connect = connect;
