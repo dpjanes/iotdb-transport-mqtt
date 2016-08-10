@@ -31,6 +31,8 @@ const Rx = require('rx');
 const events = require('events');
 const assert = require('assert');
 
+const connect = require("./connect");
+
 const logger = iotdb.logger({
     name: 'iotdb-transport-fs',
     module: 'transporter',
@@ -48,8 +50,8 @@ const make = (initd, mqtt) => {
             unchannel: iotdb_transport.unchannel,
             encode: s => s.replace(/[\/$%#.\]\[]/g, (c) => '%' + c.charCodeAt(0).toString(16)),
             decode: s => decodeURIComponent(s),
-            unpack: (d, id, band) => _.d.transform(d, { pre: _.ld_compact, key: _initd._decode, }),
-            pack: (d, id, band) => _.d.transform(d, { pre: _.ld_compact, key: _initd._encode, }),
+            unpack: (d, id, band) => JSON.parse(d.toString ? d.toString() : d),
+            pack: (d, id, band) => JSON.stringify(d),
         },
         iotdb.keystore().get("/transports/MQTTTransport/initd"), {
             prefix: "/",
@@ -62,13 +64,14 @@ const make = (initd, mqtt) => {
                 return observer.onError(error);
             }
 
-            var topic = _initd.channel(_initd, d.id, d.band);
-            var message = _initd.pack(value, d.id, d.band);
+            const topic = _initd.channel(_initd, d.id, d.band);
+            const message = _initd.pack(d.value, d.id, d.band);
 
             if (_initd.verbose) {
                 logger.info({
                     topic: topic,
-                    message, message,
+                    message: message,
+                    message_type: typeof message,
                 }, "VERBOSE: sending message");
             }
 
@@ -85,17 +88,60 @@ const make = (initd, mqtt) => {
             });
         });
     };
+
+    let _subscribed = false;
     
     self.rx.updated = (observer, d) => {
-        observer.onCompleted();
+        _mqtt_ready(error => {
+            if (error) {
+                logger.error({
+                    method: "updated/_mqtt_client",
+                    cause: "likely MQTT issue - see previous error messages",
+                }, "could not get MQTT client");
+                return;
+            }
+
+            if (!_subscribed) {
+                _subscribed = true;
+
+                const channel = _initd.channel(initd, "#");
+                _mqtt.subscribe(channel, error => {
+                    if (error) {
+                        logger.error({
+                            method: "updated/mqtt.subscribe",
+                            cause: "likely MQTT issue - this is probably very bad",
+                            channel: channel,
+                        }, "unexpected error subscribing");
+                    }
+                });
+            }
+
+            _mqtt.on("message", (topic, message, packet) => {
+                const md = _initd.unchannel(initd, topic, message);
+
+                if (d.id && (md.id !== d.id)) {
+                    return;
+                }
+                if (d.band && (md.band !== d.band)) {
+                    return;
+                }
+
+                const rd = _.d.clone.shallow(d);
+                rd.id = md.id;
+                rd.band = md.band;
+                rd.value = _initd.unpack(message, md.id, md.band);
+
+                observer.onNext(rd);
+            });
+        });
     };
 
     // -- internals
-    const _mqtt_ready = (done) => {
+    const _mqtt_ready = done => {
         if (_mqtt.connected) {
             done();
         } else {
-            _mqtt.once("connect", () => done();
+            _mqtt.once("connect", () => done());
         }
     };
 
