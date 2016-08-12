@@ -48,10 +48,10 @@ const make = (initd, mqtt_client) => {
             unchannel: iotdb_transport.unchannel,
             encode: s => s.replace(/[\/$%#.\]\[]/g, (c) => '%' + c.charCodeAt(0).toString(16)),
             decode: s => decodeURIComponent(s),
-            unpack: (d, id, band) => JSON.parse(d.toString ? d.toString() : d),
-            pack: (d, id, band) => JSON.stringify(d),
+            unpack: (doc, d) => JSON.parse(doc.toString ? doc.toString() : doc),
+            pack: d => JSON.stringify(d.value),
         },
-        iotdb.keystore().get("/transports/MQTTTransport/initd"), {
+        iotdb.keystore().get("/transports/iotdb-transport-mqtt/initd"), {
             prefix: "/",
         }
     );
@@ -63,7 +63,7 @@ const make = (initd, mqtt_client) => {
             }
 
             const topic = _initd.channel(_initd, d.id, d.band);
-            const message = _initd.pack(d.value, d.id, d.band);
+            const message = _initd.pack(d);
 
             if (_initd.verbose) {
                 logger.info({
@@ -127,7 +127,7 @@ const make = (initd, mqtt_client) => {
                 const rd = _.d.clone.shallow(d);
                 rd.id = md.id;
                 rd.band = md.band;
-                rd.value = _initd.unpack(message, md.id, md.band);
+                rd.value = _initd.unpack(message, md);
 
                 observer.onNext(rd);
             });
