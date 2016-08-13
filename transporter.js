@@ -62,7 +62,7 @@ const make = (initd, mqtt_client) => {
                 return observer.onError(error);
             }
 
-            const topic = _initd.channel(_initd, d.id, d.band);
+            const topic = _initd.channel(_initd, d);
             const message = _initd.pack(d);
 
             if (_initd.verbose) {
@@ -102,7 +102,9 @@ const make = (initd, mqtt_client) => {
             if (!_subscribed) {
                 _subscribed = true;
 
-                const channel = _initd.channel(initd, "#");
+                const channel = _initd.channel(initd, {
+                    id: "#"
+                });
                 _mqtt_client.subscribe(channel, error => {
                     if (error) {
                         logger.error({
