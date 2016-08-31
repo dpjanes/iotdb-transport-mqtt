@@ -7,8 +7,8 @@
         "assert": "~1.4.1", 
         "iotdb": ">=3.0.0", 
         "iotdb-errors": "~3.0.2", 
-        "iotdb-transport": "~3.0.2", 
-        "mqtt": "~1.14.0"
+        "iotdb-transport": "~3.0.4", 
+        "mqtt": "~1.14.1"
     }, 
     "description": "IOTDB MQTT Transport", 
     "devDependencies": {
@@ -35,5 +35,5 @@
     "scripts": {
         "test": "grunt"
     }, 
-    "version": "3.0.1"
+    "version": "3.0.2"
 }
