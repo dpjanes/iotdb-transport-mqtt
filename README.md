@@ -1,15 +1,18 @@
 # iotdb-transport-mqtt
-IOTDB MQTT Transport
+[IOTDB](https://github.com/dpjanes/node-iotdb) 
+[Transporter](https://github.com/dpjanes/node-iotdb/blob/master/docs/transporters.md)
+for
+[MQTT](http://mqtt.org/)
 
 <img src="https://raw.githubusercontent.com/dpjanes/iotdb-homestar/master/docs/HomeStar.png" align="right" />
 
-# Introduction
-
-Read about Transporters [here](https://github.com/dpjanes/iotdb-transport).
+# About
 
 This Transporter will transport data from and to MQTT. Note that reading
 commands like `list`, `get`, `bands` are meaningless as data only exists
 when it shows up on the wire: this Transport does not retain anything.
+
+* [Read more about Transporters](https://github.com/dpjanes/node-iotdb/blob/master/docs/transporters.md)
 
 # Use
 
