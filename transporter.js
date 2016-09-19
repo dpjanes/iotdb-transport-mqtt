@@ -38,6 +38,7 @@ const logger = iotdb.logger({
 
 const make = (initd, mqtt_client) => {
     const self = iotdb_transport.make();
+    self.name = "iotdb-transport-mqtt";
 
     const _mqtt_client = mqtt_client;
     assert.ok(_mqtt_client);
@@ -56,9 +57,11 @@ const make = (initd, mqtt_client) => {
         }
     );
 
+    const _timestampd = {};
+
     self.rx.put = (observer, d) => {
         _mqtt_client.ensure(error => {
-            if (error) {
+            if (_.is.Error(error)) {
                 return observer.onError(error);
             }
 
@@ -73,11 +76,18 @@ const make = (initd, mqtt_client) => {
                 }, "VERBOSE: sending message");
             }
 
+            /*
+            const timestamp = d.value["@timestamp"];
+            if (timestamp) {
+                _timestampd[topic] = timestamp;
+            }
+            */
+
             _mqtt_client.publish(topic, message, {
                 retain: _initd.retain,
                 qos: _initd.qos,
             }, error => {
-                if (error) {
+                if (_.is.Error(error)) {
                     return observer.onError(error);
                 }
 
@@ -131,6 +141,15 @@ const make = (initd, mqtt_client) => {
                 rd.band = md.band;
                 rd.value = _initd.unpack(message, md);
 
+                /*
+                const timestamp = rd.value["@timestamp"];
+                if (timestamp) {
+                    console.log("HERE:XXX.IN.1", topic, _timestampd[topic], timestamp);
+                    console.log("HERE:XXX.IN.2", rd);
+                }
+                */
+
+                // console.log("MQTT.2", topic);
                 observer.onNext(rd);
             });
         });

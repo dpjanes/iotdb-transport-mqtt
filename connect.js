@@ -47,7 +47,7 @@ const logger = iotdb.logger({
 
 const _setup_initd = initd => _.d.compose.shallow(
     initd,
-    iotdb.keystore().get("/transports/MQTTTransport/initd"), {
+    iotdb.keystore().get("/transports/iotdb-transport-mqtt/initd"), {
         verbose: false,
 
         prefix: "",
@@ -109,9 +109,9 @@ const _connect = initd => {
     }
 
     const native = mqtt.connect(initd.url, connectd);
-    native.on('connect', function () {
+    native.on('connect', () => {
         logger.info({
-            method: "publish/on(connect)",
+            method: "_connect/on(connect)",
             url: initd.url,
         }, "connected");
 
@@ -121,6 +121,17 @@ const _connect = initd => {
         console.log("=== Connect at:");
         console.log("=== " + _.net.url.join(initd.url, initd.prefix));
         console.log("===============================");
+    });
+    native.on('disconnect', () => {
+        logger.warn({
+            method: "_connect/on(disconnect)",
+        }, "MQTT disconncted");
+    });
+    native.on('error', error => {
+        logger.warn({
+            method: "_connect/on(error)",
+            error: _.error.message(error),
+        }, "MQTT error");
     });
 
     return native;
