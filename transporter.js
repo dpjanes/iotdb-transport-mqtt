@@ -156,6 +156,7 @@ const make = (initd, mqtt_client) => {
     };
 
     self.rx.list = (observer, d) => { throw new errors.NeverImplemented(); };
+    self.rx.remove = (observer, d) => { throw new errors.NeverImplemented(); };
     self.rx.added = (observer, d) => { throw new errors.NeverImplemented(); };
     self.rx.get = (observer, d) => { throw new errors.NeverImplemented(); };
     self.rx.bands = (observer, d) => { throw new errors.NeverImplemented(); };

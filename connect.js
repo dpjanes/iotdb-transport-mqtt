@@ -56,6 +56,11 @@ const _setup_initd = initd => _.d.compose.shallow(
         qos: 0,
         add_timestamp: false,
 
+        // login
+        username: null,
+        password: null,
+        client_id: null,
+
         // secure conections
         protocol: null,
         port: null,
@@ -70,6 +75,14 @@ const _connect = initd => {
     const connectd = {
         clientId: initd.client_id,
     };
+
+    if (initd.username) {
+        connectd.username = initd.username;
+    }
+
+    if (initd.password) {
+        connectd.password = initd.password;
+    }
 
     if (initd.key) {
         connectd.key = fs.readFileSync(initd.key);
