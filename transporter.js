@@ -66,7 +66,7 @@ const make = (initd, mqtt_client) => {
             }
 
             const topic = _initd.channel(_initd, d);
-            const message = _initd.pack(_initd, d);
+            const message = _initd.pack(d);
 
             if (_initd.verbose) {
                 logger.info({
